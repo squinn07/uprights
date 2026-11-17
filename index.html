@@ -39,7 +39,7 @@
 <div id="lbScreen" class="screen hidden">
   <div class="panel lbPanel">
     <h1>Leaderboard</h1>
-    <p class="lead">Top 10 games on this device</p>
+    <p class="lead" id="lbLead">Top 10 games on this device</p>
     <div class="lbWrap"><table class="lb" id="lbTable"></table></div>
     <div class="btnRow"><button id="lbCloseBtn" class="primary">Close</button></div>
   </div>
@@ -80,6 +80,8 @@
 <script src="assets/mixamo-pack.js"></script>
 <!-- Crowd recordings, produced by tools/pack-audio.js (empty until you add some - see assets/audio/README.txt) -->
 <script src="assets/audio-pack.js"></script>
+<!-- Online leaderboard details (blank = scores stay on this device) -->
+<script src="js/leaderboard-config.js"></script>
 <script src="js/teams.js"></script>
 <script src="js/physics.js"></script>
 <script src="js/audio.js"></script>

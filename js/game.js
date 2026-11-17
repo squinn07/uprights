@@ -254,7 +254,9 @@
     updateHUD();
   }
 
-  /* ---------------- leaderboard (top 10, kept in this browser) ---------------- */
+  /* ---------------- leaderboard ----------------
+     Online (shared by everyone) when js/leaderboard-config.js has Supabase details,
+     otherwise the top 10 kept in this browser. The device list is always kept too. */
   const LB_KEY = 'fgk_leaderboard', LB_MAX = 10;
   function loadLB() {
     try { const a = JSON.parse(localStorage.getItem(LB_KEY) || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; }
@@ -262,33 +264,81 @@
   function saveLB(list) { try { localStorage.setItem(LB_KEY, JSON.stringify(list)); } catch (e) {} }
   const lbOrder = (a, b) => b.score - a.score || b.threes - a.threes || b.made - a.made || a.t - b.t;
   const qualifies = score => { const l = loadLB(); return score > 0 && (l.length < LB_MAX || score > l[l.length - 1].score); };
-  function renderLB(table, meId) {
-    const list = loadLB();
-    const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+  const CFG = window.LEADERBOARD_CONFIG || {};
+  const ONLINE = !!(CFG.url && CFG.key);
+  function api(path, opts = {}) {
+    const h = { apikey: CFG.key, 'Content-Type': 'application/json' };
+    if (/^eyJ/.test(CFG.key)) h.Authorization = 'Bearer ' + CFG.key;   // legacy anon key (JWT)
+    return fetch(CFG.url.replace(/\/+$/, '') + '/rest/v1/' + path,
+      Object.assign({}, opts, { headers: Object.assign(h, opts.headers || {}) }))
+      .then(r => { if (!r.ok) throw new Error('leaderboard HTTP ' + r.status); return r; });
+  }
+  const teamColors = abbr => {
+    const t = NFL_TEAMS.find(x => x.abbr === abbr);
+    return t ? { c1: t.primary, on1: onColor(t.primary) } : { c1: '#444', on1: '#fff' };
+  };
+  const fetchOnline = () => api('scores?select=id,name,team,score,threes,ones,made' +
+    '&order=score.desc,threes.desc,made.desc,created_at.asc&limit=' + LB_MAX)
+    .then(r => r.json()).then(rows => rows.map(r => Object.assign(r, { id: 'o' + r.id }, teamColors(r.team))));
+  const postOnline = e => api('scores', {
+    method: 'POST', headers: { Prefer: 'return=representation' },
+    body: JSON.stringify({ name: e.name, team: e.team, score: e.score, threes: e.threes, ones: e.ones, made: e.made, longest: e.longest || 0 }),
+  }).then(r => r.json()).then(rows => 'o' + rows[0].id);
+  // how many online scores beat this one (for "you're #N")
+  const rankOnline = score => api('scores?select=id&score=gt.' + score, { headers: { Prefer: 'count=exact', Range: '0-0' } })
+    .then(r => 1 + (parseInt((r.headers.get('content-range') || '').split('/')[1], 10) || 0));
+
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  function renderLB(table, meId, list, note) {
     let html = '<tr><th class="l">#</th><th class="l">Name</th><th class="l hideS">Team</th><th>Score</th><th>Middle +3</th><th>Outside +1</th><th>Made</th></tr>';
-    if (!list.length) html += '<tr><td class="empty" colspan="7">No scores yet. Make some kicks!</td></tr>';
-    list.forEach((r, i) => {
+    if (!list) html += '<tr><td class="empty" colspan="7">Loading…</td></tr>';
+    else if (!list.length) html += '<tr><td class="empty" colspan="7">No scores yet. Make some kicks!</td></tr>';
+    (list || []).forEach((r, i) => {
       html += `<tr class="${r.id === meId ? 'me' : ''}"><td class="l">${i + 1}</td><td class="l">${esc(r.name)}</td>` +
         `<td class="l tm hideS"><span style="background:${esc(r.c1)};color:${esc(r.on1)}">${esc(r.team)}</span></td>` +
-        `<td class="sc">${r.score}</td><td>${r.threes}</td><td>${r.ones}</td><td>${r.made}</td></tr>`;
+        `<td class="sc">${r.score | 0}</td><td>${r.threes | 0}</td><td>${r.ones | 0}</td><td>${r.made | 0}</td></tr>`;
     });
+    if (note) html += `<tr><td class="empty" colspan="7">${esc(note)}</td></tr>`;
     table.innerHTML = html;
   }
+  // show the shared board (falls back to this device's list if it can't be reached)
+  let lbShowSeq = 0;
+  function showLB(table, meId, note) {
+    if (!ONLINE) { renderLB(table, meId, loadLB(), note); return; }
+    const seq = ++lbShowSeq;
+    renderLB(table, meId, null);
+    fetchOnline().then(list => { if (seq === lbShowSeq) renderLB(table, meId, list, note); })
+      .catch(err => {
+        console.warn(err);
+        if (seq === lbShowSeq) renderLB(table, meId, loadLB(), 'Online leaderboard unavailable, showing this device.');
+      });
+  }
+  $('lbLead').textContent = ONLINE ? 'Top 10 scores from everyone' : 'Top 10 games on this device';
+
   let lbPending = null;            // this game's entry, waiting for a name
   $('lbEntry').addEventListener('submit', e => {
     e.preventDefault();
     if (!lbPending) return;
     const name = $('lbName').value.trim().slice(0, 14) || 'Player';
     try { localStorage.setItem('fgk_name', name); } catch (err) {}
-    const list = loadLB();
-    list.push(Object.assign(lbPending, { name }));
-    list.sort(lbOrder);
-    saveLB(list.slice(0, LB_MAX));
-    renderLB($('lbTableOver'), lbPending.id);
+    const entry = Object.assign(lbPending, { name });
     lbPending = null;
     $('lbEntry').classList.add('hidden');
+    if (qualifies(entry.score)) {
+      const list = loadLB();
+      list.push(entry);
+      list.sort(lbOrder);
+      saveLB(list.slice(0, LB_MAX));
+    }
+    if (!ONLINE) { renderLB($('lbTableOver'), entry.id, loadLB()); return; }
+    renderLB($('lbTableOver'), null, null);
+    postOnline(entry)
+      .then(id => rankOnline(entry.score).then(rank => showLB($('lbTableOver'), id, `${name}, you're #${rank} in the world.`),
+                                           () => showLB($('lbTableOver'), id)))
+      .catch(err => { console.warn(err); renderLB($('lbTableOver'), entry.id, loadLB(), "Couldn't save online, saved on this device."); });
   });
-  $('lbOpenBtn').addEventListener('click', () => { renderLB($('lbTable')); $('lbScreen').classList.remove('hidden'); });
+  $('lbOpenBtn').addEventListener('click', () => { showLB($('lbTable')); $('lbScreen').classList.remove('hidden'); });
   $('lbCloseBtn').addEventListener('click', () => $('lbScreen').classList.add('hidden'));
 
   function gameOver() {
@@ -307,14 +357,15 @@
     $('overLong').textContent = g.longest ? `${g.longest} yd` : '—';
     $('overBest').textContent = best;
     $('newBest').classList.toggle('hidden', !isBest || g.score === 0);
-    // a score good enough for the top 10 asks for a name
-    lbPending = qualifies(g.score) ? {
+    // a score good enough for the top 10 (any score, when the board is online) asks for a name
+    lbPending = (ONLINE ? g.score > 0 : qualifies(g.score)) ? {
       id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), t: Date.now(),
       team: g.team.abbr, c1: g.team.primary, on1: onColor(g.team.primary),
       score: g.score, threes: g.threes, ones: g.ones, made: g.makes, longest: g.longest,
     } : null;
     $('lbEntry').classList.toggle('hidden', !lbPending);
-    renderLB($('lbTableOver'));
+    $('lbMsg').textContent = ONLINE ? 'Save your score to the leaderboard' : 'You made the leaderboard!';
+    showLB($('lbTableOver'));
     if (lbPending) {
       let last = ''; try { last = localStorage.getItem('fgk_name') || ''; } catch (e) {}
       $('lbName').value = last;
