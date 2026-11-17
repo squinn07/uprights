@@ -72,7 +72,7 @@
 
   function resize() {
     W = window.innerWidth; H = window.innerHeight;
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const dpr = World.pixelRatio(W, H);
     overlay.width = Math.round(W * dpr); overlay.height = Math.round(H * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     World.resize(W, H);

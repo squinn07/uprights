@@ -483,7 +483,10 @@ const World = (() => {
   function init(canvas) {
     renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
     renderer.outputEncoding = THREE.sRGBEncoding;
-    renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 0.95;
+    const P = new URLSearchParams(location.search);   // look=aces|linear|none|cineon, exp= (testing aid)
+    renderer.toneMapping = { aces: THREE.ACESFilmicToneMapping, linear: THREE.LinearToneMapping, none: THREE.NoToneMapping,
+      cineon: THREE.CineonToneMapping, reinhard: THREE.ReinhardToneMapping }[P.get('look') || 'aces'];
+    renderer.toneMappingExposure = +(P.get('exp') || 1.3);
     renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     maxAniso = renderer.capabilities.getMaxAnisotropy();
 
@@ -511,8 +514,11 @@ const World = (() => {
     sun.position.copy(V(x - 26, 44, z - 24));
   }
 
+  // Draw at the screen's full sharpness on phones (up to 3x), but cap big desktop
+  // windows at 2x, so the pixel count stays around 4.5 million at most.
+  const pixelRatio = (W, H) => Math.min(window.devicePixelRatio || 1, Math.max(2, Math.sqrt(4.5e6 / (W * H))), 3);
   function resize(W, H) {
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setPixelRatio(pixelRatio(W, H));
     renderer.setSize(W, H, false);
     const F = Math.min(Math.max(W * 0.85, H * 0.75), H * 1.45);
     camera.aspect = W / H; camera.fov = 2 * Math.atan(H / (2 * F)) * 180 / Math.PI;
@@ -586,7 +592,7 @@ const World = (() => {
   }
 
   return {
-    init, resize, setTeam, setKick, setAim, setZones, setBall, setTrail, setCamera, lookFrom, update, V, col,
+    init, resize, pixelRatio, setTeam, setKick, setAim, setZones, setBall, setTrail, setCamera, lookFrom, update, V, col,
     render: () => renderer.render(scene, camera),
     get scene() { return scene; },
   };
