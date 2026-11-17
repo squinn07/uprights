@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Field Goal Challenge</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="field"></canvas>
+<canvas id="overlay"></canvas>
+
+<button id="muteBtn" aria-label="Mute sound" title="Mute / unmute">🔊</button>
+
+<div id="hud" class="hidden">
+  <div id="scorebar">
+    <div id="teamTag"><span id="teamAbbr"></span><span id="kickerName"></span></div>
+    <div class="stat"><label>Score</label><b id="score">0</b></div>
+    <div class="stat"><label>Made</label><b id="makes">0</b></div>
+    <div class="stat"><label>Lives</label><b id="lives"></b></div>
+  </div>
+  <div id="situation">
+    <span id="sitDist"></span><span id="sitHash"></span><span id="sitWind"></span>
+  </div>
+  <div id="banner" class="hidden"><div id="bannerMain"></div><div id="bannerSub"></div></div>
+  <div id="hint"></div>
+  <button id="snapBtn">READY</button>
+</div>
+
+<div id="selectScreen" class="screen">
+  <div class="panel wide">
+    <h1>Field Goal Challenge</h1>
+    <p class="lead">Pick your team. Middle third of the posts +3, outside thirds +1. Three misses and you're done.</p>
+    <div class="btnRow topRow"><button id="lbOpenBtn">🏆 Leaderboard</button></div>
+    <div id="confs"></div>
+  </div>
+</div>
+
+<div id="lbScreen" class="screen hidden">
+  <div class="panel lbPanel">
+    <h1>Leaderboard</h1>
+    <p class="lead">Top 10 games on this device</p>
+    <div class="lbWrap"><table class="lb" id="lbTable"></table></div>
+    <div class="btnRow"><button id="lbCloseBtn" class="primary">Close</button></div>
+  </div>
+</div>
+
+<div id="overScreen" class="screen hidden">
+  <div class="panel">
+    <h1>Game Over</h1>
+    <p class="lead" id="overWho"></p>
+    <div class="overStats">
+      <div><label>Final score</label><b id="overScore">0</b></div>
+      <div><label>Kicks made</label><b id="overMakes">0</b></div>
+      <div><label>Down the middle (+3)</label><b id="overThrees">0</b></div>
+      <div><label>Outside thirds (+1)</label><b id="overOnes">0</b></div>
+      <div><label>Longest</label><b id="overLong">-</b></div>
+      <div><label>Best score</label><b id="overBest">0</b></div>
+    </div>
+    <p id="newBest" class="hidden">New best score!</p>
+    <form id="lbEntry" class="hidden" autocomplete="off">
+      <p class="lbMsg" id="lbMsg">You made the leaderboard!</p>
+      <input id="lbName" maxlength="14" placeholder="Your name" aria-label="Your name">
+      <button type="submit" class="primary">Save</button>
+    </form>
+    <div class="lbWrap"><table class="lb" id="lbTableOver"></table></div>
+    <div class="btnRow">
+      <button id="againBtn" class="primary">Play again</button>
+      <button id="changeBtn">Change teams</button>
+    </div>
+  </div>
+</div>
+
+<!-- three.js r147, kept locally so the game runs offline by opening this file -->
+<script src="vendor/three.min.js"></script>
+<script src="vendor/fflate.min.js"></script>
+<script src="vendor/FBXLoader.js"></script>
+<script src="vendor/SkeletonUtils.js"></script>
+<!-- Mixamo character + animations, produced by tools/pack-mixamo.js (empty until you add some) -->
+<script src="assets/mixamo-pack.js"></script>
+<!-- Crowd recordings, produced by tools/pack-audio.js (empty until you add some - see assets/audio/README.txt) -->
+<script src="assets/audio-pack.js"></script>
+<script src="js/teams.js"></script>
+<script src="js/physics.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/scene.js"></script>
+<script src="js/characters.js"></script>
+<script src="js/game.js"></script>
+</body>
+</html>

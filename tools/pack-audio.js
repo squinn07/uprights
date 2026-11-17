@@ -1,0 +1,101 @@
+/* Bundles the crowd recordings in assets/audio/ into assets/audio-pack.js.
+
+   Browsers will not let a page opened straight from disk read other files, so the sounds are
+   embedded in a script the page can load. Re-run this after adding or replacing a file:
+
+       node tools/pack-audio.js        (or double-click tools/pack-audio.bat)
+
+   WAV files are made smaller on the way in (mono, 22 kHz, at most 45 s) and the two looping
+   beds (crowd, stadium) get a crossfaded seam so the loop point can't be heard.
+   MP3 and OGG files are embedded as they are. */
+const fs = require('fs');
+const path = require('path');
+
+const dir = path.join(__dirname, '..', 'assets', 'audio');
+const out = path.join(__dirname, '..', 'assets', 'audio-pack.js');
+const ROLES = { crowd: 'loop', stadium: 'loop', cheer: 'shot', boo: 'shot' };
+const RATE = 22050, MAX_SEC = 45, SEAM = 1.5;
+
+function readWav(buf) {
+  if (buf.toString('ascii', 0, 4) !== 'RIFF' || buf.toString('ascii', 8, 12) !== 'WAVE') throw new Error('not a WAV file');
+  let p = 12, fmt = null, data = null;
+  while (p + 8 <= buf.length) {
+    const id = buf.toString('ascii', p, p + 4), size = buf.readUInt32LE(p + 4), body = p + 8;
+    if (id === 'fmt ') fmt = { format: buf.readUInt16LE(body), ch: buf.readUInt16LE(body + 2), rate: buf.readUInt32LE(body + 4), bits: buf.readUInt16LE(body + 14) };
+    if (id === 'data') data = buf.subarray(body, Math.min(buf.length, body + size));
+    p = body + size + (size & 1);
+  }
+  if (!fmt || !data) throw new Error('WAV has no fmt/data');
+  const { format, ch, bits } = fmt, bps = bits / 8, n = Math.floor(data.length / (bps * ch));
+  const read = (o) => {
+    if (format === 3 && bits === 32) return data.readFloatLE(o);
+    if (bits === 16) return data.readInt16LE(o) / 32768;
+    if (bits === 24) return (data.readIntLE(o, 3)) / 8388608;
+    if (bits === 32) return data.readInt32LE(o) / 2147483648;
+    if (bits === 8) return (data.readUInt8(o) - 128) / 128;
+    throw new Error(bits + '-bit WAV not supported');
+  };
+  const mono = new Float32Array(n);
+  for (let i = 0; i < n; i++) { let s = 0; for (let c = 0; c < ch; c++) s += read((i * ch + c) * bps); mono[i] = s / ch; }
+  return { rate: fmt.rate, samples: mono };
+}
+
+function resample(x, from, to) {
+  if (from === to) return x;
+  const n = Math.floor(x.length * to / from), y = new Float32Array(n), k = from / to;
+  // simple low-pass when shrinking: average the source samples each output sample covers
+  for (let i = 0; i < n; i++) {
+    const a = i * k, b = Math.min(x.length - 1, (i + 1) * k);
+    let s = 0, c = 0;
+    for (let j = Math.floor(a); j <= Math.floor(b); j++) { s += x[j]; c++; }
+    y[i] = c ? s / c : 0;
+  }
+  return y;
+}
+
+function seamless(x, rate) {
+  const m = Math.min(Math.floor(SEAM * rate), Math.floor(x.length / 4));
+  const y = x.slice(0, x.length - m);
+  for (let i = 0; i < m; i++) { const t = i / m; y[i] = x[i] * t + x[x.length - m + i] * (1 - t); }   // tail fades into the head
+  return y;
+}
+
+function writeWav(x, rate) {
+  let peak = 0; for (const v of x) peak = Math.max(peak, Math.abs(v));
+  const g = peak > 0 ? 0.89 / peak : 1;                                   // normalise to about -1 dB
+  const b = Buffer.alloc(44 + x.length * 2);
+  b.write('RIFF', 0); b.writeUInt32LE(36 + x.length * 2, 4); b.write('WAVE', 8);
+  b.write('fmt ', 12); b.writeUInt32LE(16, 16); b.writeUInt16LE(1, 20); b.writeUInt16LE(1, 22);
+  b.writeUInt32LE(rate, 24); b.writeUInt32LE(rate * 2, 28); b.writeUInt16LE(2, 32); b.writeUInt16LE(16, 34);
+  b.write('data', 36); b.writeUInt32LE(x.length * 2, 40);
+  for (let i = 0; i < x.length; i++) b.writeInt16LE(Math.max(-32767, Math.min(32767, Math.round(x[i] * g * 32767))), 44 + i * 2);
+  return b;
+}
+
+const files = {};
+for (const f of fs.existsSync(dir) ? fs.readdirSync(dir) : []) {
+  const ext = path.extname(f).toLowerCase();
+  if (!['.wav', '.mp3', '.ogg'].includes(ext)) continue;
+  const name = path.basename(f, ext).toLowerCase();
+  if (!ROLES[name]) { console.log(`  ${f.padEnd(16)} skipped (name not used by the game - see README.txt)`); continue; }
+  let buf = fs.readFileSync(path.join(dir, f));
+  try {
+    if (ext === '.wav') {
+      const w = readWav(buf);
+      let x = resample(w.samples, w.rate, RATE);
+      if (x.length > MAX_SEC * RATE) x = x.subarray(0, MAX_SEC * RATE);
+      if (ROLES[name] === 'loop') x = seamless(x, RATE);
+      buf = writeWav(x, RATE);
+    }
+    files[name] = buf.toString('base64');
+    console.log(`  ${f.padEnd(16)} ${(buf.length / 1048576).toFixed(1)} MB  (${ROLES[name] === 'loop' ? 'looping bed' : 'one-shot'})`);
+  } catch (e) { console.log(`  ${f.padEnd(16)} skipped: ${e.message}`); }
+}
+
+if (!Object.keys(files).length) {
+  fs.writeFileSync(out, '// No crowd recordings packed - the game synthesises its crowd.\nwindow.AUDIO_PACK = null;\n');
+  console.log('No recordings found in assets/audio/. The game will synthesise its crowd.');
+} else {
+  fs.writeFileSync(out, '// Generated by tools/pack-audio.js - do not edit.\nwindow.AUDIO_PACK = ' + JSON.stringify({ files }) + ';\n');
+  console.log(`\nWrote assets/audio-pack.js (${(fs.statSync(out).size / 1048576).toFixed(1)} MB).`);
+}
