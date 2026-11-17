@@ -1,4 +1,4 @@
-/* Field Goal Challenge - game rules, input and actor direction.
+/* Uprights - game rules, input and actor direction.
    Rendering lives in scene.js (world) and characters.js (players). World units are yards. */
 (() => {
   'use strict';
@@ -184,11 +184,11 @@
     const k = g.kick;
     $('score').textContent = g.score;
     $('makes').textContent = g.makes;
-    $('lives').innerHTML = [0, 1, 2].map(i => `<span class="${i < g.lives ? '' : 'lost'}">🏈</span>`).join('');
+    $('lives').innerHTML = [0, 1, 2].map(i => `<span class="${i < g.lives ? '' : 'lost'}">ðŸˆ</span>`).join('');
     if (!k) return;
     $('sitDist').textContent = `${k.dist} YD`;
-    $('sitHash').textContent = k.hash < 0 ? '◀ LEFT HASH' : 'RIGHT HASH ▶';
-    $('sitWind').textContent = k.wind === 0 ? 'WIND CALM' : k.wind > 0 ? `WIND ${k.wind} MPH ➡` : `⬅ WIND ${-k.wind} MPH`;
+    $('sitHash').textContent = k.hash < 0 ? 'â—€ LEFT HASH' : 'RIGHT HASH â–¶';
+    $('sitWind').textContent = k.wind === 0 ? 'WIND CALM' : k.wind > 0 ? `WIND ${k.wind} MPH âž¡` : `â¬… WIND ${-k.wind} MPH`;
   }
 
   // Aim is locked in: run the two meters, then the whole operation plays out without stopping.
@@ -240,7 +240,7 @@
       g.score += pts; g.makes++;
       if (pts === 3) g.threes++; else g.ones++;
       g.longest = Math.max(g.longest, k.dist);
-      sub = `+${pts}  ·  ${pts === 3 ? 'middle third' : 'outside third'}  ·  ${k.dist} yards`;
+      sub = `+${pts}  Â·  ${pts === 3 ? 'middle third' : 'outside third'}  Â·  ${k.dist} yards`;
       AudioFX.whistle(false); AudioFX.cheer();
       if (isMx(actors.kicker) && Characters.Mixamo.clips.celebrate) actors.kicker.play('celebrate', { fade: 0.35 });
     } else {
@@ -248,7 +248,7 @@
       sub = g.lives > 0 ? `${g.lives} ${g.lives === 1 ? 'life' : 'lives'} left` : 'Out of lives';
       AudioFX.whistle(true); AudioFX.groan();
     }
-    $('bannerMain').textContent = good ? msg : `NO GOOD — ${msg}`;
+    $('bannerMain').textContent = good ? msg : `NO GOOD â€” ${msg}`;
     $('bannerSub').textContent = sub;
     $('banner').className = good ? 'good' : 'bad';
     updateHUD();
@@ -299,12 +299,12 @@
     if (top) best = Math.max(best, top.score);
     const isBest = g.score > best;
     if (isBest) { best = g.score; try { localStorage.setItem('fgk_best', String(best)); } catch (e) {} }
-    $('overWho').textContent = `${g.team.kicker.name} · ${g.team.city} ${g.team.name}`;
+    $('overWho').textContent = `${g.team.kicker.name} Â· ${g.team.city} ${g.team.name}`;
     $('overScore').textContent = g.score;
     $('overMakes').textContent = g.makes;
     $('overThrees').textContent = g.threes;
     $('overOnes').textContent = g.ones;
-    $('overLong').textContent = g.longest ? `${g.longest} yd` : '—';
+    $('overLong').textContent = g.longest ? `${g.longest} yd` : 'â€”';
     $('overBest').textContent = best;
     $('newBest').classList.toggle('hidden', !isBest || g.score === 0);
     // a score good enough for the top 10 asks for a name
@@ -330,11 +330,11 @@
     const b = g.ball, ax = Math.abs(x), R = 0.19, side = Math.sign(x) || 1;
     if (Math.abs(y - BAR) < R && ax < PH + R) {                    // crossbar
       AudioFX.doink();
-      if (y >= BAR) { b.vy = Math.abs(b.vy) * 0.4 + 3; b.vz *= 0.55; decide(true, 'OFF THE BAR… AND IN!', x); }
+      if (y >= BAR) { b.vy = Math.abs(b.vy) * 0.4 + 3; b.vz *= 0.55; decide(true, 'OFF THE BARâ€¦ AND IN!', x); }
       else { b.vz *= -0.35; b.vy *= 0.3; b.z = -0.05; decide(false, 'OFF THE CROSSBAR'); }
     } else if (y > BAR && y < TOP + R && Math.abs(ax - PH) < R) {  // upright
       AudioFX.doink();
-      if (ax < PH) { b.vx = -side * (Math.abs(b.vx) * 0.5 + 2); b.vz *= 0.6; decide(true, 'DOINK… AND IN!', x); }
+      if (ax < PH) { b.vx = -side * (Math.abs(b.vx) * 0.5 + 2); b.vz *= 0.6; decide(true, 'DOINKâ€¦ AND IN!', x); }
       else { b.vx = side * (Math.abs(b.vx) * 0.5 + 3); b.vz *= 0.3; decide(false, 'OFF THE UPRIGHT'); }
     } else if (ax >= PH) decide(false, x < 0 ? 'WIDE LEFT' : 'WIDE RIGHT');
     else if (y > BAR) decide(true, Math.abs(x) < PH / 3 ? "RIGHT DOWN THE MIDDLE!" : "IT'S GOOD!", x);
@@ -585,7 +585,7 @@
     ctx.font = '700 11px "Segoe UI", Arial, sans-serif'; ctx.textBaseline = 'alphabetic';
 
     const pv = g.state === 'power' ? g.meter : g.power;
-    ctx.fillStyle = '#fff'; ctx.textAlign = 'left'; ctx.fillText('POWER  ·  get past the white line', x, y - 7);
+    ctx.fillStyle = '#fff'; ctx.textAlign = 'left'; ctx.fillText('POWER  Â·  get past the white line', x, y - 7);
     ctx.textAlign = 'right'; ctx.fillText(`${Math.round(pv * 100)}%`, x + mw, y - 7);
     ctx.fillStyle = '#0c1220'; ctx.fillRect(x, y, mw, h);
     const pg = ctx.createLinearGradient(x, 0, x + mw, 0);
@@ -596,7 +596,7 @@
 
     const y2 = y + 46, cx = x + mw / 2;
     ctx.textAlign = 'left'; ctx.fillStyle = g.state === 'power' ? 'rgba(255,255,255,0.4)' : '#fff';
-    ctx.fillText('ACCURACY  ·  stop in the green', x, y2 - 7);
+    ctx.fillText('ACCURACY  Â·  stop in the green', x, y2 - 7);
     const ag = ctx.createLinearGradient(x, 0, x + mw, 0);
     ag.addColorStop(0, '#e74c3c'); ag.addColorStop(0.3, '#f1c40f'); ag.addColorStop(0.5, '#f7e27a'); ag.addColorStop(0.7, '#f1c40f'); ag.addColorStop(1, '#e74c3c');
     ctx.globalAlpha = g.state === 'power' ? 0.35 : 1;
@@ -691,7 +691,7 @@
   $('changeBtn').addEventListener('click', () => { commitLB(); showSelect(); });
 
   const muteBtn = $('muteBtn');
-  const paintMute = () => { muteBtn.textContent = AudioFX.isMuted() ? '🔇' : '🔊'; };
+  const paintMute = () => { muteBtn.textContent = AudioFX.isMuted() ? 'ðŸ”‡' : 'ðŸ”Š'; };
   muteBtn.addEventListener('click', () => { AudioFX.init(); AudioFX.setMuted(!AudioFX.isMuted()); paintMute(); muteBtn.blur(); });
   paintMute();
 
@@ -723,7 +723,7 @@
           b.style.setProperty('--on', onColor(t.primary));
           const tn = document.createElement('span'); tn.className = 'tn'; tn.textContent = `${t.city} ${t.name}`;
           const kn = document.createElement('span'); kn.className = 'kn'; kn.textContent = `#${t.kicker.number} ${t.kicker.name}`;
-          const rt = document.createElement('span'); rt.className = 'rt'; rt.textContent = `LEG ${t.kicker.leg} · ACC ${t.kicker.acc}`;
+          const rt = document.createElement('span'); rt.className = 'rt'; rt.textContent = `LEG ${t.kicker.leg} Â· ACC ${t.kicker.acc}`;
           b.append(tn, kn, rt);
           b.addEventListener('click', () => startGame(t));
           d.appendChild(b);
