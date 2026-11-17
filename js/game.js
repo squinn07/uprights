@@ -89,7 +89,7 @@
     g.vmax = Physics.speedForRange(range);
     g.maxDist = Math.min(65, Math.floor(range) - 2);
     g.dead = 0.05 + (k.acc - 78) * 0.004;              // half-width of the perfect-timing zone
-    g.score = 0; g.makes = 0; g.threes = 0; g.ones = 0; g.zone = null; g.lives = 3; g.longest = 0;
+    g.score = 0; g.makes = 0; g.threes = 0; g.ones = 0; g.kicks = 0; g.zone = null; g.lives = 3; g.longest = 0;
     g.kick = null; g.lastHash = 0; g.hashRun = 0;
 
     const kit = {
@@ -233,6 +233,7 @@
     if (g.decided) return;
     const k = g.kick;
     g.decided = true; g.good = good; g.decT = 0;
+    g.kicks++;
     let sub;
     if (good) {
       g.zone = zoneOf(x || 0);
@@ -290,6 +291,10 @@
     .then(r => 1 + (parseInt((r.headers.get('content-range') || '').split('/')[1], 10) || 0));
 
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const pct = (n, of) => (of > 0 ? Math.round(100 * n / of) : 0) + '%';
+  // a count with its share of all kicks taken; games always end on the 3rd miss,
+  // so older entries without a kick count had made + 3 kicks
+  const withPct = (n, r) => `${n | 0}<small class="pct">${pct(n | 0, r.kicks || ((r.made | 0) + 3))}</small>`;
   function renderLB(table, meId, list, note) {
     let html = '<tr><th class="l">#</th><th class="l">Name</th><th class="l hideS">Team</th><th>Score</th><th>Middle +3</th><th>Outside +1</th><th>Made</th></tr>';
     if (!list) html += '<tr><td class="empty" colspan="7">Loading…</td></tr>';
@@ -297,7 +302,7 @@
     (list || []).forEach((r, i) => {
       html += `<tr class="${r.id === meId ? 'me' : ''}"><td class="l">${i + 1}</td><td class="l">${esc(r.name)}</td>` +
         `<td class="l tm hideS"><span style="background:${esc(r.c1)};color:${esc(r.on1)}">${esc(r.team)}</span></td>` +
-        `<td class="sc">${r.score | 0}</td><td>${r.threes | 0}</td><td>${r.ones | 0}</td><td>${r.made | 0}</td></tr>`;
+        `<td class="sc">${r.score | 0}</td><td>${withPct(r.threes, r)}</td><td>${withPct(r.ones, r)}</td><td>${withPct(r.made, r)}</td></tr>`;
     });
     if (note) html += `<tr><td class="empty" colspan="7">${esc(note)}</td></tr>`;
     table.innerHTML = html;
@@ -354,6 +359,9 @@
     $('overMakes').textContent = g.makes;
     $('overThrees').textContent = g.threes;
     $('overOnes').textContent = g.ones;
+    $('overMakesPct').textContent = `${pct(g.makes, g.kicks)} of ${g.kicks} kicks`;
+    $('overThreesPct').textContent = `${pct(g.threes, g.kicks)} of kicks`;
+    $('overOnesPct').textContent = `${pct(g.ones, g.kicks)} of kicks`;
     $('overLong').textContent = g.longest ? `${g.longest} yd` : '—';
     $('overBest').textContent = best;
     $('newBest').classList.toggle('hidden', !isBest || g.score === 0);
@@ -361,7 +369,7 @@
     lbPending = (ONLINE ? g.score > 0 : qualifies(g.score)) ? {
       id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), t: Date.now(),
       team: g.team.abbr, c1: g.team.primary, on1: onColor(g.team.primary),
-      score: g.score, threes: g.threes, ones: g.ones, made: g.makes, longest: g.longest,
+      score: g.score, threes: g.threes, ones: g.ones, made: g.makes, kicks: g.kicks, longest: g.longest,
     } : null;
     $('lbEntry').classList.toggle('hidden', !lbPending);
     $('lbMsg').textContent = ONLINE ? 'Save your score to the leaderboard' : 'You made the leaderboard!';

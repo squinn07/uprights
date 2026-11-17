@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Uprights</title>
-<link rel="stylesheet" href="style.css?v=202611171607">
+<link rel="stylesheet" href="style.css?v=202611171612">
 </head>
 <body>
 <canvas id="field"></canvas>
@@ -51,9 +51,9 @@
     <p class="lead" id="overWho"></p>
     <div class="overStats">
       <div><label>Final score</label><b id="overScore">0</b></div>
-      <div><label>Kicks made</label><b id="overMakes">0</b></div>
-      <div><label>Down the middle (+3)</label><b id="overThrees">0</b></div>
-      <div><label>Outside thirds (+1)</label><b id="overOnes">0</b></div>
+      <div><label>Kicks made</label><b id="overMakes">0</b><small class="pct" id="overMakesPct"></small></div>
+      <div><label>Down the middle (+3)</label><b id="overThrees">0</b><small class="pct" id="overThreesPct"></small></div>
+      <div><label>Outside thirds (+1)</label><b id="overOnes">0</b><small class="pct" id="overOnesPct"></small></div>
       <div><label>Longest</label><b id="overLong">-</b></div>
       <div><label>Best score</label><b id="overBest">0</b></div>
     </div>
@@ -72,21 +72,21 @@
 </div>
 
 <!-- three.js r147, kept locally so the game runs offline by opening this file -->
-<script src="vendor/three.min.js?v=202611171607"></script>
-<script src="vendor/fflate.min.js?v=202611171607"></script>
-<script src="vendor/FBXLoader.js?v=202611171607"></script>
-<script src="vendor/SkeletonUtils.js?v=202611171607"></script>
+<script src="vendor/three.min.js?v=202611171612"></script>
+<script src="vendor/fflate.min.js?v=202611171612"></script>
+<script src="vendor/FBXLoader.js?v=202611171612"></script>
+<script src="vendor/SkeletonUtils.js?v=202611171612"></script>
 <!-- Mixamo character + animations, produced by tools/pack-mixamo.js (empty until you add some) -->
-<script src="assets/mixamo-pack.js?v=202611171607"></script>
+<script src="assets/mixamo-pack.js?v=202611171612"></script>
 <!-- Crowd recordings, produced by tools/pack-audio.js (empty until you add some - see assets/audio/README.txt) -->
-<script src="assets/audio-pack.js?v=202611171607"></script>
+<script src="assets/audio-pack.js?v=202611171612"></script>
 <!-- Online leaderboard details (blank = scores stay on this device) -->
-<script src="js/leaderboard-config.js?v=202611171607"></script>
-<script src="js/teams.js?v=202611171607"></script>
-<script src="js/physics.js?v=202611171607"></script>
-<script src="js/audio.js?v=202611171607"></script>
-<script src="js/scene.js?v=202611171607"></script>
-<script src="js/characters.js?v=202611171607"></script>
-<script src="js/game.js?v=202611171607"></script>
+<script src="js/leaderboard-config.js?v=202611171612"></script>
+<script src="js/teams.js?v=202611171612"></script>
+<script src="js/physics.js?v=202611171612"></script>
+<script src="js/audio.js?v=202611171612"></script>
+<script src="js/scene.js?v=202611171612"></script>
+<script src="js/characters.js?v=202611171612"></script>
+<script src="js/game.js?v=202611171612"></script>
 </body>
 </html>

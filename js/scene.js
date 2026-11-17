@@ -157,7 +157,7 @@ const World = (() => {
     x.font = '900 150px Impact, "Arial Black", sans-serif';
     x.fillText(team ? team.name.toUpperCase() : 'FIELD GOAL', 512, 124, 960);
     x.font = '700 40px Arial, sans-serif';
-    x.fillText(team ? `${team.city.toUpperCase()}  ·  FIELD GOAL CHALLENGE` : 'CHALLENGE', 512, 276, 960);
+    x.fillText(team ? `${team.city.toUpperCase()}  ·  UPRIGHTS` : 'UPRIGHTS', 512, 276, 960);
     if (boardTex) boardTex.needsUpdate = true;
   }
 
